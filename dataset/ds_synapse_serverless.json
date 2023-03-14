@@ -1,0 +1,13 @@
+{
+	"name": "ds_synapse_serverless",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_synapse_serverless",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "AzureSqlDWTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

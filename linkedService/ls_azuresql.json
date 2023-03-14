@@ -1,0 +1,27 @@
+{
+	"name": "ls_azuresql",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"ConnectionSecretName": {
+				"type": "string",
+				"defaultValue": "kv-adflanding-connstr"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlDatabase",
+		"typeProperties": {
+			"connectionString": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": {
+					"value": "@linkedService().ConnectionSecretName",
+					"type": "Expression"
+				}
+			}
+		}
+	}
+}

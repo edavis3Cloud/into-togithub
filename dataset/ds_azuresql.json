@@ -1,0 +1,24 @@
+{
+	"name": "ds_azuresql",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_azuresql",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"ConnectionSecretName": {
+					"value": "@dataset().ConnectionSecretName",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"ConnectionSecretName": {
+				"type": "string"
+			}
+		},
+		"annotations": [],
+		"type": "AzureSqlTable",
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

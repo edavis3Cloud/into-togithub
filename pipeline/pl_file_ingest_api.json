@@ -1,0 +1,212 @@
+{
+	"name": "pl_file_ingest_api",
+	"properties": {
+		"activities": [
+			{
+				"name": "Queue Request",
+				"type": "AzureFunctionActivity",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"functionName": "call-api",
+					"method": "POST",
+					"body": {
+						"value": "@pipeline().parameters.ConfigJson",
+						"type": "Expression"
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_hydratorfunction",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Evaluate Function Output",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "Queue Request",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[etl].[Api_EvaluateFunctionOutput]",
+					"storedProcedureParameters": {
+						"FunctionName": {
+							"value": "call-api",
+							"type": "String"
+						},
+						"JsonResponse": {
+							"value": {
+								"value": "@string(activity('Queue Request').output)",
+								"type": "Expression"
+							},
+							"type": "String"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azuresql_etlcontrol",
+					"type": "LinkedServiceReference"
+				}
+			},
+			{
+				"name": "Until Api Calls are done",
+				"type": "Until",
+				"dependsOn": [
+					{
+						"activity": "Evaluate Function Output",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"userProperties": [],
+				"typeProperties": {
+					"expression": {
+						"value": "@or(or(or(or(\n  equals(variables('FunctionStatus'),'Success'),\n  equals(variables('FunctionStatus'),'Failed')),\n  equals(variables('FunctionStatus'),'Failure')),\n  equals(variables('FunctionStatus'),'Error')),\n  variables('NoConfidence'))",
+						"type": "Expression"
+					},
+					"activities": [
+						{
+							"name": "Lookup API Status",
+							"type": "Lookup",
+							"dependsOn": [
+								{
+									"activity": "Wait Time",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"policy": {
+								"timeout": "7.00:00:00",
+								"retry": 0,
+								"retryIntervalInSeconds": 30,
+								"secureOutput": false,
+								"secureInput": false
+							},
+							"userProperties": [],
+							"typeProperties": {
+								"source": {
+									"type": "AzureSqlSource",
+									"sqlReaderStoredProcedureName": "[etl].[ApiAudit_GetStatus]",
+									"storedProcedureParameters": {
+										"TaskAuditKey": {
+											"type": "Int32",
+											"value": {
+												"value": "@pipeline().parameters.TaskAuditKey",
+												"type": "Expression"
+											}
+										}
+									},
+									"queryTimeout": "02:00:00",
+									"partitionOption": "None"
+								},
+								"dataset": {
+									"referenceName": "ds_azure_sql_etlcontrol",
+									"type": "DatasetReference"
+								}
+							}
+						},
+						{
+							"name": "Wait Time",
+							"type": "Wait",
+							"dependsOn": [],
+							"userProperties": [],
+							"typeProperties": {
+								"waitTimeInSeconds": {
+									"value": "@pipeline().parameters.WaitTimeSeconds",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set FunctionStatus",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Lookup API Status",
+									"dependencyConditions": [
+										"Succeeded"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "FunctionStatus",
+								"value": {
+									"value": "@activity('Lookup API Status').output.firstRow.FunctionStatus",
+									"type": "Expression"
+								}
+							}
+						},
+						{
+							"name": "Set FunctionStatus_Error",
+							"type": "SetVariable",
+							"dependsOn": [
+								{
+									"activity": "Lookup API Status",
+									"dependencyConditions": [
+										"Failed"
+									]
+								}
+							],
+							"userProperties": [],
+							"typeProperties": {
+								"variableName": "FunctionStatus",
+								"value": "Failure"
+							}
+						}
+					],
+					"timeout": "7.00:00:00"
+				}
+			}
+		],
+		"parameters": {
+			"TaskAuditKey": {
+				"type": "int",
+				"defaultValue": 1
+			},
+			"ConfigJson": {
+				"type": "object"
+			},
+			"WaitTimeSeconds": {
+				"type": "int",
+				"defaultValue": 1
+			}
+		},
+		"variables": {
+			"FunctionStatus": {
+				"type": "String",
+				"defaultValue": "Unknown"
+			},
+			"NoConfidence": {
+				"type": "Boolean"
+			},
+			"NextValue": {
+				"type": "String"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-03-13T23:39:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,19 @@
+{
+	"name": "ls_restapi_key",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"parameters": {
+			"BaseURL": {
+				"type": "string",
+				"defaultValue": "https://api.hubapi.com/"
+			}
+		},
+		"annotations": [],
+		"type": "RestService",
+		"typeProperties": {
+			"url": "https://api.hubapi.com/",
+			"enableServerCertificateValidation": true,
+			"authenticationType": "Anonymous"
+		}
+	}
+}

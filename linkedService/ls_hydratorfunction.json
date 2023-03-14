@@ -1,0 +1,26 @@
+{
+	"name": "ls_hydratorfunction",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"type": "AzureFunction",
+		"annotations": [],
+		"typeProperties": {
+			"functionAppUrl": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "kv-hydratorfunctions-url"
+			},
+			"functionKey": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "kv-hydratorfunctions-functionkey"
+			}
+		}
+	}
+}

@@ -1,0 +1,35 @@
+{
+	"name": "ds_restapi_key",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "ls_restapi_key",
+			"type": "LinkedServiceReference",
+			"parameters": {
+				"BaseURL": {
+					"value": "@dataset().BaseURL",
+					"type": "Expression"
+				}
+			}
+		},
+		"parameters": {
+			"RelativeURL": {
+				"type": "string",
+				"defaultValue": "contacts/v1/lists/all/contacts/all?hapikey=demo"
+			},
+			"BaseURL": {
+				"type": "string",
+				"defaultValue": "https://api.hubapi.com/"
+			}
+		},
+		"annotations": [],
+		"type": "RestResource",
+		"typeProperties": {
+			"relativeUrl": {
+				"value": "@dataset().RelativeURL",
+				"type": "Expression"
+			}
+		},
+		"schema": []
+	},
+	"type": "Microsoft.DataFactory/factories/datasets"
+}

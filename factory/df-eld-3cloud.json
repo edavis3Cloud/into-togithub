@@ -1,0 +1,17 @@
+{
+	"name": "df-eld-3cloud",
+	"properties": {
+		"globalParameters": {
+			"KeyVaultUri": {
+				"type": "string",
+				"value": "https://kv-eld-rg-3cloud-sandbox.vault.azure.net/"
+			}
+		}
+	},
+	"location": "centralus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "2b1cc5f2-9135-4ab4-a874-5e70b4d59eb3",
+		"tenantId": "ed9aa516-5358-4016-a8b2-b6ccb99142d0"
+	}
+}

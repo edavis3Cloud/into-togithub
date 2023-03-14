@@ -1,0 +1,155 @@
+{
+	"name": "pl_standard_ingest_azure_sql",
+	"properties": {
+		"activities": [
+			{
+				"name": "ingest_azuresql",
+				"type": "Copy",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderQuery": {
+							"value": "@pipeline().parameters.TaskQuery.firstRow.SourceQuery",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"sink": {
+						"type": "ParquetSink",
+						"storeSettings": {
+							"type": "AzureBlobFSWriteSettings"
+						},
+						"formatSettings": {
+							"type": "ParquetWriteSettings"
+						}
+					},
+					"enableStaging": false
+				},
+				"inputs": [
+					{
+						"referenceName": "ds_azuresql",
+						"type": "DatasetReference",
+						"parameters": {
+							"ConnectionSecretName": {
+								"value": "@pipeline().parameters.TaskInfo.firstRow.ConnectionSecretName",
+								"type": "Expression"
+							}
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "ds_azure_storage_parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileSystem": {
+								"value": "@pipeline().parameters.TaskInfo.firstRow.DataLakeInitialContainer",
+								"type": "Expression"
+							},
+							"Directory": {
+								"value": "@pipeline().parameters.TaskInfo.firstRow.DataLakeInitialFolder",
+								"type": "Expression"
+							},
+							"File": {
+								"value": "@pipeline().parameters.TaskInfo.firstRow.DataLakeInitialFileName",
+								"type": "Expression"
+							},
+							"CompressionType": {
+								"value": "@pipeline().parameters.TaskInfo.firstRow.DataLakeInitialFileCompressionType",
+								"type": "Expression"
+							}
+						}
+					}
+				]
+			},
+			{
+				"name": "TaskAuditExecutionUpdate",
+				"type": "SqlServerStoredProcedure",
+				"dependsOn": [
+					{
+						"activity": "ingest_azuresql",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"storedProcedureName": "[etl].[TaskAuditExecutionUpdate]",
+					"storedProcedureParameters": {
+						"BytesRead": {
+							"value": {
+								"value": "@activity('ingest_azuresql').output.dataRead",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						},
+						"BytesWritten": {
+							"value": {
+								"value": "@activity('ingest_azuresql').output.dataWritten",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						},
+						"RowsCopied": {
+							"value": {
+								"value": "@activity('ingest_azuresql').output.rowsCopied",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						},
+						"RowsRead": {
+							"value": {
+								"value": "@activity('ingest_azuresql').output.rowsRead",
+								"type": "Expression"
+							},
+							"type": "Int64"
+						},
+						"TaskAuditKey": {
+							"value": {
+								"value": "@pipeline().parameters.TaskAuditKey",
+								"type": "Expression"
+							},
+							"type": "Int32"
+						}
+					}
+				},
+				"linkedServiceName": {
+					"referenceName": "ls_azuresql_etlcontrol",
+					"type": "LinkedServiceReference"
+				}
+			}
+		],
+		"parameters": {
+			"TaskInfo": {
+				"type": "object"
+			},
+			"TaskQuery": {
+				"type": "object"
+			},
+			"TaskAuditKey": {
+				"type": "int"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-03-13T23:39:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

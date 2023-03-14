@@ -1,0 +1,157 @@
+{
+	"name": "pl_exec_synapse_query",
+	"properties": {
+		"activities": [
+			{
+				"name": "Get_Serverless_Query",
+				"description": "Use the data from GetTaskInfo to create the script that will be passed to Synapse to create the Serverless view. The procedure requires the ViewName (TableName) and FilePath at a minimum, however the storage account name must also be passed if the External datasource does not exist on the database.",
+				"type": "Lookup",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "AzureSqlSource",
+						"sqlReaderStoredProcedureName": "[etl].[GetServerlessQuery]",
+						"storedProcedureParameters": {
+							"Database": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.TaskInfo.firstRow.RawServerlessDatabaseName",
+									"type": "Expression"
+								}
+							},
+							"FilePath": {
+								"type": "String",
+								"value": {
+									"value": "@replace(pipeline().parameters.TaskInfo.firstRow.DataLakeInitialFolder, 'transient', 'raw')",
+									"type": "Expression"
+								}
+							},
+							"StorageAccount": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.TaskInfo.firstRow.DefaultStorageAccountName",
+									"type": "Expression"
+								}
+							},
+							"StorageContainer": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.TaskInfo.firstRow.DataLakeInitialContainer",
+									"type": "Expression"
+								}
+							},
+							"ViewName": {
+								"type": "String",
+								"value": {
+									"value": "@pipeline().parameters.TaskInfo.firstRow.TableName",
+									"type": "Expression"
+								}
+							},
+							"ViewSchema": {
+								"type": "String",
+								"value": "dbo"
+							}
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_azure_sql_etlcontrol",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Create_Serverless_View",
+				"description": "Executes the query created earlier in the pipeline to create the serverless views on top of the datalake.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Create_Serverless_Database",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "@concat('EXEC (''', replace(activity('Get_Serverless_Query').output.firstrow.Query,'''',''''''),'''); SELECT ''Query executed'';')",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_synapse_serverless",
+						"type": "DatasetReference"
+					}
+				}
+			},
+			{
+				"name": "Create_Serverless_Database",
+				"description": "If the Database parameter is specified, this query will create the database before executing the view creation. This is a separate step because you cannot separate batches in TSQL statements created by dynamic SQL, so the final query was not executing the scripts in serial as designed.",
+				"type": "Lookup",
+				"dependsOn": [
+					{
+						"activity": "Get_Serverless_Query",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "7.00:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "SqlDWSource",
+						"sqlReaderQuery": {
+							"value": "@if( empty(pipeline().parameters.TaskInfo.firstRow.RawServerlessDatabaseName), 'SELECT ''No database specified.''; ', concat('EXEC(''', 'IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = ''''', pipeline().parameters.TaskInfo.firstRow.RawServerlessDatabaseName, ''''') CREATE DATABASE ' , pipeline().parameters.TaskInfo.firstRow.RawServerlessDatabaseName, ';''); SELECT ''Query executed'';'))",
+							"type": "Expression"
+						},
+						"queryTimeout": "02:00:00",
+						"partitionOption": "None"
+					},
+					"dataset": {
+						"referenceName": "ds_synapse_serverless",
+						"type": "DatasetReference"
+					}
+				}
+			}
+		],
+		"parameters": {
+			"TaskAuditKey": {
+				"type": "int"
+			},
+			"TaskInfo": {
+				"type": "object"
+			}
+		},
+		"annotations": [],
+		"lastPublishTime": "2023-03-13T23:39:10Z"
+	},
+	"type": "Microsoft.DataFactory/factories/pipelines"
+}

@@ -1,0 +1,35 @@
+{
+	"name": "ls_azure_databricks",
+	"type": "Microsoft.DataFactory/factories/linkedservices",
+	"properties": {
+		"type": "AzureDatabricks",
+		"annotations": [],
+		"typeProperties": {
+			"domain": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "kv-databricks-url"
+			},
+			"authentication": "MSI",
+			"workspaceResourceId": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "kv-databricks-workspace-resourceid"
+			},
+			"existingClusterId": {
+				"type": "AzureKeyVaultSecret",
+				"store": {
+					"referenceName": "ls_keyvault",
+					"type": "LinkedServiceReference"
+				},
+				"secretName": "kv-databricks-clusterid"
+			}
+		}
+	}
+}
